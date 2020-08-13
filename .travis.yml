@@ -14,6 +14,10 @@ addons:
       - clang-format-3.9
       - libaio-dev
       - libzstd-dev
+  sonarcloud:
+    organization: "l2dy-sonarcloud"
+    token:
+      secure: "ML/Gv2vQbRMvUk73SsVFK2rTNWlNuGS8RecG00UgVML2QfR74r8zHv9oisjbHNv46qKdvUuMMDnIfZbqZ6Z3wE0o0yFCVQ41wOx8rJW5MEs/+TnKl3oNqKnbJmyz6gRo8VbzaNDNyi4eJkXsEOXVcsM/zDcLWqaXPVOmFJB9jse1BkLo3+XFeO7eZjhOODyzJqOn1UaYvCvPNnLCutWNUyt4JoxkGpkQqS9mAXsJIh7AFEI5lNhmr3GzJsoqk4W0G6VHseKhqECKTpaS+txUWibOX7pR0jiVna2YTJnQva6tVY+5E9BEYXKF9pBv4X9zPPEoOzDA4PpQa0+n7HpG3XupB1KPRs7VG8LQZrC8QH/lLvZAMDzOXg4C8C0I7g6Z/Df2GA7I+2nxX+iGD3B96zm83mhLN5JHr8Csy4RV2okVpQr49TZsvFkA6dS1A3luyfkMmynzXKgEVVPgdfsRAVIVwqbw2bSOEVPriUmHqkPYkwHzmkq2eHwTepqJF7DV3vvHkEp7XTNDprqc/5+9x5UXnofSSh9SN/JTS9kqlgERrPAW+KCgXzEQwPeokHfvtqVN4HQliO4TQfSrqVWdGQJ9JOLEERgYrKERqWtMsnyRJ9DbNklvhAgj+sOHJa4P1k9X0vsQlgCzV1fQhyPIpwaTD0Xuypcxxh+6TXJ8Zno=" # encrypted value of your token
 
 cache:
     - ccache
@@ -32,10 +36,12 @@ before_script:
     - ulimit -c unlimited -S
 
 script:
-    - ./scripts/travis.sh
-
-after_script:
-    - ./run.sh stop_zk
+  # Wraps the compilation with the Build Wrapper to generate configuration (used
+  # later by the SonarScanner) into the "scan_build_report" folder
+  - build-wrapper-linux-x86-64 --out-dir scan_build_report ./run.sh build -c --skip_thirdparty --disable_gperf
+  # And finally run the SonarCloud analysis - read the "sonar-project.properties"
+  # file to see the specific configuration
+  - sonar-scanner -Dsonar.cfamily.build-wrapper-output=scan_build_report -Dsonar.cfamily.threads=2 -Dsonar.cfamily.cache.enabled=false
 
 notifications:
     email: false
